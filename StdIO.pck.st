@@ -1,6 +1,6 @@
-'From Cuis7.6 [latest update: #7777] on 11 March 2026 at 12:32:54 pm'!
+'From Cuis7.6 [latest update: #7777] on 11 March 2026 at 2:30:58 pm'!
 'Description FileStreams for stdio.  Simple REPL for headless (unwindowed) execution.'!
-!provides: 'StdIO' 1 28!
+!provides: 'StdIO' 1 29!
 !requires: 'Cuis-Base' 76 7777 nil!
 SystemOrganization addCategory: #StdIO!
 
@@ -275,25 +275,26 @@ previousOutput
 	outputs size = 0 ifTrue: [^ nil].
 	^ outputs last! !
 
-!REPLSession methodsFor: 'user interface' stamp: 'JZCH 8/Mar/2026 20:42:38'!
+!REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 14:27:58'!
 saveContents
 "Saves the inputs and outputs to a file"
 	<stdioreplcommand>
 	| fileName |
 	fileName := 'Session: ' , DateAndTime now asString.
 	
-	self saveContentsTo: fileName asFileEntry.
-	^ 'Saved to ' , fileName asString! !
+	^ self saveContentsTo: fileName! !
 
-!REPLSession methodsFor: 'user interface' stamp: 'JZCH 8/Mar/2026 20:43:00'!
-saveContentsTo: aFileEntry
+!REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 14:29:01'!
+saveContentsTo: aFileName
 "Saves the contents to the given filename"
 	<stdioreplcommand>
+	| fileEntry |
+	fileEntry := aFileName asFileEntry.
 
-	aFileEntry writeStreamDo: [ :fileStream |
+	fileEntry writeStreamDo: [ :fileStream |
 		fileStream ifNotNil: [ 
 			self saveContentsOn: fileStream ]].
-	^ 'Saved to ' , aFileEntry asString! !
+	^ 'Saved to ' , fileEntry asString! !
 
 !REPLSession methodsFor: 'accessing' stamp: 'JZCH 8/Mar/2026 20:48:57'!
 addInput: anObject
