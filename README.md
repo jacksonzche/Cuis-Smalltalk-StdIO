@@ -35,6 +35,8 @@ Outputs are saved and retrieved within the REPL session as Smalltalk objects.
 
 Block Closures can be created and saved as either output or shared variable and reused within the REPL session.
 
+Objects can be saved to and restored from file.
+
 ````
 1 >  [:a :b | a * b]! "Save a block closure to the output"
 ...
@@ -44,4 +46,8 @@ Block Closures can be created and saved as either output or shared variable and 
 3 >  self sn assignTo: #aBlock value: [:a :b | a * b]! "Save a block closure to a shared variable"
 ...
 4 >  (self use: #aBlock) value: 3 value: 5!
+...
+5 >  self sn save: self reuse to: 'myObject'!
+...
+6 >  self sn restoreFromFile: 'myObject'!
 ````

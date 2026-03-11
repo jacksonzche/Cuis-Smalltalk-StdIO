@@ -1,6 +1,6 @@
-'From Cuis7.6 [latest update: #7777] on 11 March 2026 at 2:30:58 pm'!
+'From Cuis7.6 [latest update: #7777] on 11 March 2026 at 9:28:01 pm'!
 'Description FileStreams for stdio.  Simple REPL for headless (unwindowed) execution.'!
-!provides: 'StdIO' 1 29!
+!provides: 'StdIO' 1 30!
 !requires: 'Cuis-Base' 76 7777 nil!
 SystemOrganization addCategory: #StdIO!
 
@@ -214,7 +214,7 @@ commands
 	selectors := pragmas collect: [:aPragma | aPragma selector].
 	^ self repl printWrappedToWidth: selectors! !
 
-!REPLSession methodsFor: 'user interface' stamp: 'JZCH 8/Mar/2026 21:41:33'!
+!REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 21:20:00'!
 help
 "Show help text"
 	<stdioreplcommand>
@@ -235,12 +235,15 @@ IO:
 	previousOutput 			last output
 	outputAt: 			output at index
 
-Saving:
+Saving\Restoring:
 	saveContents 			save session to text file
 	saveContentsTo: 		save session to a file 
 					Example: self sn saveContentsTo: ''session'' asFileEntry
+	save:to: 			save an object to a file
+					Example: self sn save: (self reuse) to: ''test''
+	restoreFromFile: 		restore an object from a file
 
-Shared Variables - names must be #Symbols
+Shared Variables - names must be #Symbols:
 	declare: 			put nil at #name
 	hasDeclared: 			return true if #name exists
 	assignTo:value: 		assign to #name a value
@@ -274,6 +277,23 @@ previousOutput
 	<stdioreplcommand>
 	outputs size = 0 ifTrue: [^ nil].
 	^ outputs last! !
+
+!REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 21:04:19'!
+restoreFromFile: fileName
+"Load an object from file"
+	<stdioreplcommand>
+	| aFileEntry|
+	aFileEntry := fileName asFileEntry.
+	^ ReferenceStream restoreFromFile: aFileEntry! !
+
+!REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 21:01:09'!
+save: anObject to: fileName
+"Save an object to file"
+	<stdioreplcommand>
+	| aFileEntry|
+	aFileEntry := fileName asFileEntry.
+	ReferenceStream dumpOnFile: aFileEntry asFileEntry object: anObject.
+	^ 'Saved to ' , aFileEntry asString! !
 
 !REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 14:27:58'!
 saveContents
