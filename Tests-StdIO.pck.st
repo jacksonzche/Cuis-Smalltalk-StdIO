@@ -1,9 +1,19 @@
-'From Cuis7.6 [latest update: #7777] on 9 March 2026 at 3:30:08 pm'!
+'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 9:27:04 am'!
 'Description '!
-!provides: 'Tests-StdIO' 1 6!
+!provides: 'Tests-StdIO' 1 7!
 !requires: 'StdIO' 1 9 nil!
 SystemOrganization addCategory: #'Tests-StdIO'!
 
+
+!classDefinition: #MinInstanceTest category: #'Tests-StdIO'!
+TestCase subclass: #MinInstanceTest
+	instanceVariableNames: 'class instance1 instance2'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Tests-StdIO'!
+!classDefinition: 'MinInstanceTest class' category: #'Tests-StdIO'!
+MinInstanceTest class
+	instanceVariableNames: ''!
 
 !classDefinition: #StdIOReadEvalPrintTest category: #'Tests-StdIO'!
 TestCase subclass: #StdIOReadEvalPrintTest
@@ -15,6 +25,28 @@ TestCase subclass: #StdIOReadEvalPrintTest
 StdIOReadEvalPrintTest class
 	instanceVariableNames: ''!
 
+
+!MinInstanceTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 09:24:14'!
+testInstancesHaveDifferentVariables
+	self deny: (instance1 variables == instance2 variables)! !
+
+!MinInstanceTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 09:26:34'!
+testInstancesHaveDifferentVariablesFromClass
+	self deny: (instance1 variables == class variables)! !
+
+!MinInstanceTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 08:54:41'!
+testInstancesShareMethods
+	self assert: (instance1 methods == instance2 methods)! !
+
+!MinInstanceTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 08:54:21'!
+testInstancesShareMethodsWithClass
+	self assert: (instance1 methods == class methods)! !
+
+!MinInstanceTest methodsFor: 'setUp/tearDown' stamp: 'JZCH 13/Mar/2026 08:52:45'!
+setUp
+	class := MinClass new.
+	instance1 := class new.
+	instance2 := class new.! !
 
 !StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 6/Mar/2026 12:36:27'!
 testAlternateTerminator

@@ -1,6 +1,6 @@
-'From Cuis7.6 [latest update: #7777] on 11 March 2026 at 9:28:01 pm'!
+'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 9:27:02 am'!
 'Description FileStreams for stdio.  Simple REPL for headless (unwindowed) execution.'!
-!provides: 'StdIO' 1 30!
+!provides: 'StdIO' 1 31!
 !requires: 'Cuis-Base' 76 7777 nil!
 SystemOrganization addCategory: #StdIO!
 
@@ -13,6 +13,36 @@ UniFileStream subclass: #StdIOFileStream
 	category: 'StdIO'!
 !classDefinition: 'StdIOFileStream class' category: #StdIO!
 StdIOFileStream class
+	instanceVariableNames: ''!
+
+!classDefinition: #MinInstance category: #StdIO!
+Object subclass: #MinInstance
+	instanceVariableNames: 'variables methods'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'StdIO'!
+!classDefinition: 'MinInstance class' category: #StdIO!
+MinInstance class
+	instanceVariableNames: ''!
+
+!classDefinition: #MinClass category: #StdIO!
+MinInstance subclass: #MinClass
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'StdIO'!
+!classDefinition: 'MinClass class' category: #StdIO!
+MinClass class
+	instanceVariableNames: ''!
+
+!classDefinition: #ObjectManager category: #StdIO!
+Object subclass: #ObjectManager
+	instanceVariableNames: 'classes repl'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'StdIO'!
+!classDefinition: 'ObjectManager class' category: #StdIO!
+ObjectManager class
 	instanceVariableNames: ''!
 
 !classDefinition: #REPLSession category: #StdIO!
@@ -50,6 +80,23 @@ A basic problem/restriction with this code is that currently the VM runs multipl
 This means that starting the REPL, even with #fork, BLOCKS THE VM while the VM's OS thread waits on input.
 
 This can be 'fixed' by spawning a 2nd OS thread to block on the stdio.  When that thread wakes up, it can 'sholder tap' the squeak VM to update its state.  Then StdIO acts as just another device driver.!
+
+!MinInstance commentStamp: 'JZCH 13/Mar/2026 08:58:31' prior: 0!
+I am a minimal instance object. There is no support for inheritance. But I can accept new variables and methods after instantiation. I am intended for prototyping simple objects in a limited development environment.
+
+Names of variables and methods must be symbols.
+
+Value of variables can be anything. Each instance can have their own unique set of variables.
+
+Functions supplied must be blocks which take the following arguments: 
+	[:theSelf :arguments | ]
+
+The first argument is the instance object, I will supply this when the method is retrieved. Arguments are supplied as an OrderedCollection. The naming of the method should follow Smalltalk convention e.g. #nameArg:arg: to hint at the number of arguments required.
+
+The methods Dictionary is shared across instances and their class.!
+
+!MinClass commentStamp: '<historical>' prior: 0!
+I am an minimal class object. See my superclass for interface requirements. Send new (instance side) to create a new minimal instance object that I describe.!
 
 !REPLSession commentStamp: 'JZCH 7/Mar/2026 21:49:49' prior: 0!
 I keep copies of inputs, outputs, and shared variables for StdIOReadEvalPrint.
@@ -172,6 +219,130 @@ stdioHandles
 stdoutHandle
 
 	^ self stdioHandles at: 2! !
+
+!MinInstance methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 13:54:58'!
+get: aSymbol
+"Retrieve a variable"
+
+	^ variables at: aSymbol! !
+
+!MinInstance methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 21:03:27'!
+methods
+	^ methods! !
+
+!MinInstance methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 21:03:34'!
+methods: aDictionary
+	methods := aDictionary! !
+
+!MinInstance methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 13:57:31'!
+send: aSymbol with: arguments
+"Send a message with arguments, if it is a unary message the supplied arguments would just be ignored. The function block must take me as the first argument, which I supply"
+
+	^ (methods at: aSymbol) value: self value: arguments! !
+
+!MinInstance methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 14:02:36'!
+set: aSymbol function: aBlock
+"Declare a message with a #Symbol as name. Function defined in a block.
+Format of the block must be [:theSelf :arguments | ].
+I will nominate myself as the first argument when the message is retrieved and run. The remainder of the arguments are provided as an OrderedCollection by the sender. The arguments would be ignored for unary messages.
+Naming should follow Smalltalk convention, e.g. #nameArg:arg:..."
+
+	aSymbol isSymbol ifFalse: [^ self error: 'Method name must be a Symbol'].
+	aBlock argumentCount = 2 ifFalse: [^ self error: 'Function block must be in the form [:theSelf :arguments | ]' ].
+	^ methods at: aSymbol put: aBlock! !
+
+!MinInstance methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 13:58:26'!
+set: aSymbol value: value
+"Create a variable with a #Symbol as name"
+
+	aSymbol isSymbol ifFalse: [^ self error: 'Variable name must be a Symbol'].
+	^ variables at: aSymbol put: value! !
+
+!MinInstance methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 21:02:45'!
+variables
+	^ variables! !
+
+!MinInstance methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 21:03:03'!
+variables: aDictionary
+	variables := aDictionary! !
+
+!MinInstance methodsFor: 'initialization' stamp: 'JZCH 12/Mar/2026 10:30:35'!
+initialize
+	super initialize.
+	variables := Dictionary new.
+	methods := Dictionary new.! !
+
+!MinClass methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 08:47:47'!
+new
+	|instance|
+	instance := MinInstance new.
+	
+	instance variables: self variables copy.
+	instance methods: self methods.
+	
+	^ instance! !
+
+!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:15:27'!
+assignTo: aName value: aValue
+	<stdioreplcommand>
+	aName isSymbol ifFalse: [^ self error: 'Name shared variables with a #Symbol'].
+	^ classes at: aName put: aValue! !
+
+!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:17:15'!
+classOf: aName
+	<stdioreplcommand>
+	^ classes at: aName! !
+
+!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:16:39'!
+classes
+	<stdioreplcommand>
+	^ classes keys! !
+
+!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:17:32'!
+classesDo: aBlock
+	<stdioreplcommand>
+	classes keysDo: aBlock! !
+
+!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:14:37'!
+declare: aName
+	<stdioreplcommand>
+	^ self assignTo: aName value: MinClass new! !
+
+!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:16:01'!
+hasDeclared: aName
+	<stdioreplcommand>
+	^ classes includesKey: aName! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 12/Mar/2026 19:52:08'!
+commands
+"Returns a list of my commands"
+	<stdioreplcommand>
+	| pragmas selectors |
+	
+	pragmas := Pragma allNamed: #stdioreplcommand in: self class.
+	selectors := pragmas collect: [:aPragma | aPragma selector].
+	^ self repl printWrappedToWidth: selectors! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 12/Mar/2026 19:51:56'!
+help
+"Show help text"
+	<stdioreplcommand>
+	^ 
+''! !
+
+!ObjectManager methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 21:21:11'!
+repl
+	^ repl! !
+
+!ObjectManager methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 21:21:43'!
+repl: selfContext
+	repl := selfContext! !
+
+!ObjectManager methodsFor: 'initialization' stamp: 'JZCH 12/Mar/2026 21:15:27'!
+initialize
+	super initialize.
+	
+	classes := Dictionary new.! !
 
 !REPLSession methodsFor: 'binding' stamp: 'JZCH 8/Mar/2026 20:57:12'!
 assignTo: aName value: aValue
