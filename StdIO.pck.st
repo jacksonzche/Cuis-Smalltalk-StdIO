@@ -1,6 +1,6 @@
-'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 12:46:20 pm'!
+'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 1:00:51 pm'!
 'Description FileStreams for stdio.  Simple REPL for headless (unwindowed) execution.'!
-!provides: 'StdIO' 1 34!
+!provides: 'StdIO' 1 37!
 !requires: 'Cuis-Base' 76 7777 nil!
 SystemOrganization addCategory: #StdIO!
 
@@ -675,7 +675,7 @@ endImmediately
 	runningPrivateNoREPL := false.
 	^ 'Loop force stopped - should use double terminator during normal use instead'! !
 
-!StdIOReadEvalPrint methodsFor: 'user interface' stamp: 'JZCH 9/Mar/2026 21:26:46'!
+!StdIOReadEvalPrint methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 13:00:45'!
 help
 "Show help text"
 	<stdioreplcommand>
@@ -692,13 +692,15 @@ Commands:
 	help 				show this text
 	commands 			list my commands
 	sn 				session manager
+	obj 				object manager
+	cls 				class manager
 
 Reuse:
 	rerun 				reevaluate last input
 	rerun:				reevaluate input at index
 	reuse 				last output
 	reuse: 				output at index
-	use: 				shared variable #name, declared via session manager
+	use: 				object #name, declared via object manager
 	
 Others:
 	terminator: 			change character used to mark end of input
