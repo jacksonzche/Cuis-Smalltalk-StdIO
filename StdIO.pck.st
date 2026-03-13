@@ -1,6 +1,6 @@
-'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 11:05:44 am'!
+'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 12:46:20 pm'!
 'Description FileStreams for stdio.  Simple REPL for headless (unwindowed) execution.'!
-!provides: 'StdIO' 1 32!
+!provides: 'StdIO' 1 34!
 !requires: 'Cuis-Base' 76 7777 nil!
 SystemOrganization addCategory: #StdIO!
 
@@ -108,16 +108,26 @@ The methods Dictionary is shared across instances and their class.!
 !MinClass commentStamp: '<historical>' prior: 0!
 I am an minimal class object. See my superclass for interface requirements. Send new (instance side) to create a new minimal instance object that I describe.!
 
-!REPLSession commentStamp: 'JZCH 7/Mar/2026 21:49:49' prior: 0!
-I keep copies of inputs, outputs, and shared variables for StdIOReadEvalPrint.
+!ObjectManager commentStamp: 'JZCH 13/Mar/2026 11:40:07' prior: 0!
+I keep copies of shared objects for StdIOReadEvalPrint.
+
+Objects must be named using #Symbols.
+
+Objects can be saved to and restored from file.!
+
+!MinClassManager commentStamp: 'JZCH 13/Mar/2026 11:41:40' prior: 0!
+I keep definitions of "minimal classes" for StdIOReadEvalPrint.
+
+Minimal classes have shared methods dictionary between instances. And their own set of variables.
+
+Minimal classes are meant for prototyping.!
+
+!REPLSession commentStamp: 'JZCH 13/Mar/2026 11:39:44' prior: 0!
+I keep copies of inputs, outputs for StdIOReadEvalPrint.
 
 Outputs are returned as Smalltalk Objects and can be reused.
 
-Inputs are strings and can be filed out.
-
-Shared variables can be created for use between inputs using the messages under 'binding' category. REPL should have messages under 'binding' with the same names.
-
-Shared variables must be named using #Symbols.!
+Inputs are strings and can be filed out.!
 
 !StdIOReadEvalPrint commentStamp: 'JZCH 9/Mar/2026 15:12:22' prior: 0!
 Very simple Read Eval Print Loop (REPL) for standard input & output.
@@ -316,13 +326,63 @@ hasDeclared: aName
 	<stdioreplcommand>
 	^ objects includesKey: aName! !
 
-!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:51:44'!
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 12:42:14'!
 help
 "Show help text. Should override in all subclasses"
 
 	<stdioreplcommand>
 	^ 
-''! !
+'Object Manager. Declare and reuse shared objects.
+
+Usage:
+	self obj <command>
+	
+Commands:
+	help 				show this text
+	commands 			list my commands
+	
+Shared Objects - names must be #Symbols:
+	declare: 			put nil at #name
+	hasDeclared: 			return true if #name exists
+	set:value: 			assign to #name a value
+	get: 				retrieve value of #name
+	names 				list of objects
+
+Saving\Restoring:
+	save: 				save an object #name to file
+	save:to: 			save an object to a file
+					Example: self obj save: (self reuse) to: ''test''
+	restoreFromFile: 		restore an object from a file
+'! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 11:18:40'!
+names
+"Returns a list of my objects"
+
+	<stdioreplcommand>
+	^ self repl printWrappedToWidth: self objects keys! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 11:19:44'!
+restoreFromFile: fileName
+"Load an object from file"
+	<stdioreplcommand>
+	| aFileEntry|
+	aFileEntry := fileName asFileEntry.
+	^ ReferenceStream restoreFromFile: aFileEntry! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 12:41:06'!
+save: aName
+	<stdioreplcommand>
+	^ self save: (self get: aName) to: aName asFileEntry! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 11:19:54'!
+save: anObject to: fileName
+"Save an object to file"
+	<stdioreplcommand>
+	| aFileEntry|
+	aFileEntry := fileName asFileEntry.
+	ReferenceStream dumpOnFile: aFileEntry asFileEntry object: anObject.
+	^ 'Saved to ' , aFileEntry asString! !
 
 !ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:51:00'!
 set: aName value: value
@@ -364,60 +424,56 @@ pragmas
 
 	^ Pragma allNamed: #stdioreplcommand in: self class! !
 
-!ObjectManager methodsFor: 'private' stamp: 'JZCH 13/Mar/2026 10:45:52'!
+!ObjectManager methodsFor: 'private' stamp: 'JZCH 13/Mar/2026 12:01:46'!
 selectors
-	^ self pragmas collect: [:aPragma | aPragma selector].! !
+	^ (self pragmas collect: [:aPragma | aPragma selector]) asSet.! !
 
 !MinClassManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 09:50:14'!
 declare: aClassName
 	<stdioreplcommand>
 	^ self set: aClassName value: MinClass new! !
 
-!MinClassManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 09:53:04'!
+!MinClassManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 12:46:06'!
 help
 "Show help text"
 	<stdioreplcommand>
 	^ 
-''! !
+'Class Manager. Create "minimal classes".
+Class shares methods dictionary across instances
+Instances have separate variables dictionary to hold state.
 
-!MinClassManager methodsFor: 'private' stamp: 'JZCH 13/Mar/2026 10:47:36'!
+Usage:
+	self cls <command>
+	
+Commands:
+	help 				show this text
+	commands 			list my commands
+	
+Classes - names must be #Symbols:
+	declare: 			a new minimal class with #name
+	hasDeclared: 			return true if #name exists
+	get: 				retrieve a class object
+	new: 				create a new instance
+	names 				list of classes
+
+Saving\Restoring:
+	save: 				save a class to a file
+					Example: self cls save: #myClass
+	restoreFromFile: 		restore a class from a file
+'! !
+
+!MinClassManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 11:29:28'!
+new: aName
+	<stdioreplcommand>
+	^ (self get: aName) new! !
+
+!MinClassManager methodsFor: 'private' stamp: 'JZCH 13/Mar/2026 11:57:30'!
 pragmas
 	|pragmas|
 	pragmas := super pragmas.
 	pragmas := pragmas asOrderedCollection 
-		addAll: (Pragma allNamed: #stdioreplcommand in: self class superclass).
+		addAll: (Pragma allNamed: #stdioreplcommand in: self class superclass); yourself.
 	^ pragmas! !
-
-!REPLSession methodsFor: 'binding' stamp: 'JZCH 8/Mar/2026 20:57:12'!
-assignTo: aName value: aValue
-	<stdioreplcommand>
-	aName isSymbol ifFalse: [^ self error: 'Name shared variables with a #Symbol'].
-	^ sharedVariables at: aName put: aValue! !
-
-!REPLSession methodsFor: 'binding' stamp: 'JZCH 8/Mar/2026 20:57:16'!
-declare: aName
-	<stdioreplcommand>
-	^ self assignTo: aName value: nil! !
-
-!REPLSession methodsFor: 'binding' stamp: 'JZCH 8/Mar/2026 20:57:20'!
-hasDeclared: aName
-	<stdioreplcommand>
-	^ sharedVariables includesKey: aName! !
-
-!REPLSession methodsFor: 'binding' stamp: 'JZCH 8/Mar/2026 20:57:24'!
-sharedVariables
-	<stdioreplcommand>
-	^ sharedVariables keys! !
-
-!REPLSession methodsFor: 'binding' stamp: 'JZCH 8/Mar/2026 20:57:27'!
-sharedVariablesDo: aBlock
-	<stdioreplcommand>
-	sharedVariables keysDo: aBlock! !
-
-!REPLSession methodsFor: 'binding' stamp: 'JZCH 8/Mar/2026 20:57:31'!
-valueOf: aName
-	<stdioreplcommand>
-	^ sharedVariables at: aName! !
 
 !REPLSession methodsFor: 'user interface' stamp: 'JZCH 9/Mar/2026 20:41:18'!
 commands
@@ -429,7 +485,7 @@ commands
 	selectors := pragmas collect: [:aPragma | aPragma selector].
 	^ self repl printWrappedToWidth: selectors! !
 
-!REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 21:20:00'!
+!REPLSession methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 11:20:43'!
 help
 "Show help text"
 	<stdioreplcommand>
@@ -454,17 +510,6 @@ Saving\Restoring:
 	saveContents 			save session to text file
 	saveContentsTo: 		save session to a file 
 					Example: self sn saveContentsTo: ''session'' asFileEntry
-	save:to: 			save an object to a file
-					Example: self sn save: (self reuse) to: ''test''
-	restoreFromFile: 		restore an object from a file
-
-Shared Variables - names must be #Symbols:
-	declare: 			put nil at #name
-	hasDeclared: 			return true if #name exists
-	assignTo:value: 		assign to #name a value
-	valueOf: 			retrieve value of #name
-	sharedVariables 		list of shared variables
-	sharedVariablesDo: 		do a block for each #name
 '! !
 
 !REPLSession methodsFor: 'user interface' stamp: 'JZCH 8/Mar/2026 20:58:51'!
@@ -492,23 +537,6 @@ previousOutput
 	<stdioreplcommand>
 	outputs size = 0 ifTrue: [^ nil].
 	^ outputs last! !
-
-!REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 21:04:19'!
-restoreFromFile: fileName
-"Load an object from file"
-	<stdioreplcommand>
-	| aFileEntry|
-	aFileEntry := fileName asFileEntry.
-	^ ReferenceStream restoreFromFile: aFileEntry! !
-
-!REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 21:01:09'!
-save: anObject to: fileName
-"Save an object to file"
-	<stdioreplcommand>
-	| aFileEntry|
-	aFileEntry := fileName asFileEntry.
-	ReferenceStream dumpOnFile: aFileEntry asFileEntry object: anObject.
-	^ 'Saved to ' , aFileEntry asString! !
 
 !REPLSession methodsFor: 'user interface' stamp: 'JZCH 11/Mar/2026 14:27:58'!
 saveContents
@@ -565,12 +593,11 @@ saveContentsOn: aStream
 		aStream newLine; nextPutAll: '====='.
 		aStream newLine.]! !
 
-!REPLSession methodsFor: 'initialization' stamp: 'JZCH 7/Mar/2026 17:22:12'!
+!REPLSession methodsFor: 'initialization' stamp: 'JZCH 13/Mar/2026 11:09:16'!
 initialize
 	super initialize.
 	inputs := OrderedCollection new.
-	outputs := OrderedCollection new.
-	sharedVariables := Dictionary new.! !
+	outputs := OrderedCollection new.! !
 
 !StdIOReadEvalPrint methodsFor: 'initialization' stamp: 'JZCH 13/Mar/2026 10:55:15'!
 initialize
@@ -741,11 +768,11 @@ sn
 	<stdioreplcommand>
 	^ sessionPrivateNoREPL! !
 
-!StdIOReadEvalPrint methodsFor: 'user interface' stamp: 'JZCH 9/Mar/2026 21:21:59'!
+!StdIOReadEvalPrint methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 11:11:15'!
 use: aSymbol
 "Convenience message"
 	<stdioreplcommand>
-	^ self sn valueOf: aSymbol! !
+	^ self obj get: aSymbol! !
 
 !StdIOReadEvalPrint methodsFor: 'accessing' stamp: 'JZCH 8/Mar/2026 20:45:28'!
 currentIndex
