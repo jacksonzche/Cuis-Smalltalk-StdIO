@@ -1,6 +1,6 @@
-'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 9:27:04 am'!
+'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 11:05:46 am'!
 'Description '!
-!provides: 'Tests-StdIO' 1 7!
+!provides: 'Tests-StdIO' 1 8!
 !requires: 'StdIO' 1 9 nil!
 SystemOrganization addCategory: #'Tests-StdIO'!
 
@@ -48,7 +48,7 @@ setUp
 	instance1 := class new.
 	instance2 := class new.! !
 
-!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 6/Mar/2026 12:36:27'!
+!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 11:00:10'!
 testAlternateTerminator
 "Should terminate repl"
 	input nextPutAll:
@@ -59,9 +59,9 @@ testAlternateTerminator
 	input reset.
 	[repl running] whileTrue: [(Delay forMilliseconds: 5) wait.].
 	
-	self assert: [repl running not].! !
+	self deny: [repl running].! !
 
-!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 6/Mar/2026 12:37:25'!
+!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 11:00:23'!
 testDoubleTerminator
 "Should terminate repl"
 	input nextPutAll: 
@@ -71,9 +71,9 @@ testDoubleTerminator
 	input reset.
 	[repl running] whileTrue: [(Delay forMilliseconds: 5) wait.].
 	
-	self assert: [repl running not].! !
+	self deny: [repl running].! !
 
-!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 6/Mar/2026 12:37:50'!
+!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 11:00:35'!
 testEndImmediately
 "Should terminate repl"
 	input nextPutAll: 
@@ -83,7 +83,23 @@ testEndImmediately
 	input reset.
 	[repl running] whileTrue: [(Delay forMilliseconds: 5) wait.].
 	
-	self assert: [repl running not].! !
+	self deny: [repl running].! !
+
+!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 11:04:44'!
+testObjectScope
+"Shared variables are useable within the session"
+	| answer |
+	input nextPutAll: 
+	'self obj set: #var1 value: 3.
+	self obj set: #var2 value: 5!!
+	(self obj get: #var1) * (self obj get: #var2)!!
+	'.
+	
+	input reset.
+	[ answer := repl sn outputAt: 2.
+	  answer isNumber ] whileFalse: [(Delay forMilliseconds: 5) wait.].
+	
+	self assert: (answer = 15).! !
 
 !StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 9/Mar/2026 15:17:51'!
 testRerunInput
@@ -100,13 +116,13 @@ testRerunInput
 	
 	self assert: (answer = 2).! !
 
-!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 9/Mar/2026 15:17:47'!
-testReuseBlockClosuresFromOutput
-"Block closures can be reused when saved to an output"
+!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 11:03:47'!
+testReuseBlockClosuresFromObject
+"Block closures can be reused when saved to a shared variable"
 	| answer |
 	input nextPutAll: 
-	'[:a :b | a * b ]!!
-	self sn previousOutput value: 3 value: 5!!
+	'self obj set: #aBlock value: [:a :b | a * b ]!!
+	(self obj get: #aBlock) value: 3 value: 5!!
 	'.
 	
 	input reset.
@@ -115,13 +131,13 @@ testReuseBlockClosuresFromOutput
 	
 	self assert: (answer = 15).! !
 
-!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 9/Mar/2026 15:17:43'!
-testReuseBlockClosuresFromSharedVariables
-"Block closures can be reused when saved to a shared variable"
+!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 9/Mar/2026 15:17:47'!
+testReuseBlockClosuresFromOutput
+"Block closures can be reused when saved to an output"
 	| answer |
 	input nextPutAll: 
-	'self sn assignTo: #aBlock value: [:a :b | a * b ]!!
-	(self sn valueOf: #aBlock) value: 3 value: 5!!
+	'[:a :b | a * b ]!!
+	self sn previousOutput value: 3 value: 5!!
 	'.
 	
 	input reset.
@@ -145,22 +161,6 @@ testReuseOutput
 	
 	self assert: (answer = 2).! !
 
-!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 9/Mar/2026 15:17:34'!
-testSharedVariableScope
-"Shared variables are useable within the session"
-	| answer |
-	input nextPutAll: 
-	'self sn assignTo: #var1 value: 3.
-	self sn assignTo: #var2 value: 5!!
-	(self sn valueOf: #var1) * (self sn valueOf: #var2)!!
-	'.
-	
-	input reset.
-	[ answer := repl sn outputAt: 2.
-	  answer isNumber ] whileFalse: [(Delay forMilliseconds: 5) wait.].
-	
-	self assert: (answer = 15).! !
-
 !StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 6/Mar/2026 12:42:03'!
 testSingleTerminator
 "Should evaluate input"
@@ -173,7 +173,7 @@ testSingleTerminator
 	
 	self assert: repl outputReady.! !
 
-!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 9/Mar/2026 15:17:26'!
+!StdIOReadEvalPrintTest methodsFor: 'tests' stamp: 'JZCH 13/Mar/2026 11:01:40'!
 testTempVariablesScope
 "Temp variables declared in each 'line' of the REPL are accessible only in that line. They are equivalent to private variables within a method"
 	| answer |
@@ -187,7 +187,7 @@ testTempVariablesScope
 	[ answer := repl sn outputAt: 2.
 	  answer isString ] whileFalse: [(Delay forMilliseconds: 5) wait.].
 	
-	self assert: (answer isNumber not).! !
+	self deny: (answer isNumber).! !
 
 !StdIOReadEvalPrintTest methodsFor: 'setUp/tearDown' stamp: 'JZCH 4/Mar/2026 22:34:59'!
 setUp

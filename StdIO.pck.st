@@ -1,6 +1,6 @@
-'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 9:27:02 am'!
+'From Cuis7.6 [latest update: #7777] on 13 March 2026 at 11:05:44 am'!
 'Description FileStreams for stdio.  Simple REPL for headless (unwindowed) execution.'!
-!provides: 'StdIO' 1 31!
+!provides: 'StdIO' 1 32!
 !requires: 'Cuis-Base' 76 7777 nil!
 SystemOrganization addCategory: #StdIO!
 
@@ -37,12 +37,22 @@ MinClass class
 
 !classDefinition: #ObjectManager category: #StdIO!
 Object subclass: #ObjectManager
-	instanceVariableNames: 'classes repl'
+	instanceVariableNames: 'objects repl'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'StdIO'!
 !classDefinition: 'ObjectManager class' category: #StdIO!
 ObjectManager class
+	instanceVariableNames: ''!
+
+!classDefinition: #MinClassManager category: #StdIO!
+ObjectManager subclass: #MinClassManager
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'StdIO'!
+!classDefinition: 'MinClassManager class' category: #StdIO!
+MinClassManager class
 	instanceVariableNames: ''!
 
 !classDefinition: #REPLSession category: #StdIO!
@@ -57,7 +67,7 @@ REPLSession class
 
 !classDefinition: #StdIOReadEvalPrint category: #StdIO!
 Object subclass: #StdIOReadEvalPrint
-	instanceVariableNames: 'stdInPrivateNoREPL stdOutPrivateNoREPL terminatorPrivateNoREPL runningPrivateNoREPL outputReadyPrivateNoREPL sessionPrivateNoREPL quitSmalltalkOnExit stdOutWidthPrivateNoREPL'
+	instanceVariableNames: 'stdInPrivateNoREPL stdOutPrivateNoREPL terminatorPrivateNoREPL runningPrivateNoREPL outputReadyPrivateNoREPL sessionPrivateNoREPL quitSmalltalkOnExit stdOutWidthPrivateNoREPL objectManagerPrivateNoREPL classManagerPrivateNoREPL'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'StdIO'!
@@ -282,53 +292,57 @@ new
 	
 	^ instance! !
 
-!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:15:27'!
-assignTo: aName value: aValue
-	<stdioreplcommand>
-	aName isSymbol ifFalse: [^ self error: 'Name shared variables with a #Symbol'].
-	^ classes at: aName put: aValue! !
-
-!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:17:15'!
-classOf: aName
-	<stdioreplcommand>
-	^ classes at: aName! !
-
-!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:16:39'!
-classes
-	<stdioreplcommand>
-	^ classes keys! !
-
-!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:17:32'!
-classesDo: aBlock
-	<stdioreplcommand>
-	classes keysDo: aBlock! !
-
-!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:14:37'!
-declare: aName
-	<stdioreplcommand>
-	^ self assignTo: aName value: MinClass new! !
-
-!ObjectManager methodsFor: 'binding' stamp: 'JZCH 12/Mar/2026 21:16:01'!
-hasDeclared: aName
-	<stdioreplcommand>
-	^ classes includesKey: aName! !
-
-!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 12/Mar/2026 19:52:08'!
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:50:46'!
 commands
 "Returns a list of my commands"
-	<stdioreplcommand>
-	| pragmas selectors |
-	
-	pragmas := Pragma allNamed: #stdioreplcommand in: self class.
-	selectors := pragmas collect: [:aPragma | aPragma selector].
-	^ self repl printWrappedToWidth: selectors! !
 
-!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 12/Mar/2026 19:51:56'!
+	<stdioreplcommand>
+	^ self repl printWrappedToWidth: self selectors! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 09:43:54'!
+declare: aName
+	<stdioreplcommand>
+	^ self set: aName value: nil! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:51:11'!
+get: aSymbol
+"Retrieve an object"
+
+	<stdioreplcommand>
+	^ objects at: aSymbol! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:51:09'!
+hasDeclared: aName
+	<stdioreplcommand>
+	^ objects includesKey: aName! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:51:44'!
 help
-"Show help text"
+"Show help text. Should override in all subclasses"
+
 	<stdioreplcommand>
 	^ 
 ''! !
+
+!ObjectManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:51:00'!
+set: aName value: value
+"Store an object with a #Symbol as name"
+
+	<stdioreplcommand>
+	aName isSymbol ifFalse: [^ self error: 'Object name must be a Symbol'].
+	^ objects at: aName put: value! !
+
+!ObjectManager methodsFor: 'accessing' stamp: 'JZCH 13/Mar/2026 09:38:49'!
+objects
+	"Answer the value of objects"
+
+	^ objects! !
+
+!ObjectManager methodsFor: 'accessing' stamp: 'JZCH 13/Mar/2026 09:38:49'!
+objects: anObject
+	"Set the value of objects"
+
+	objects := anObject! !
 
 !ObjectManager methodsFor: 'accessing' stamp: 'JZCH 12/Mar/2026 21:21:11'!
 repl
@@ -338,11 +352,41 @@ repl
 repl: selfContext
 	repl := selfContext! !
 
-!ObjectManager methodsFor: 'initialization' stamp: 'JZCH 12/Mar/2026 21:15:27'!
+!ObjectManager methodsFor: 'initialization' stamp: 'JZCH 13/Mar/2026 09:38:43'!
 initialize
 	super initialize.
 	
-	classes := Dictionary new.! !
+	objects := Dictionary new.! !
+
+!ObjectManager methodsFor: 'private' stamp: 'JZCH 13/Mar/2026 10:49:41'!
+pragmas
+"Need to override this in subclass to include commands in this the superclass. Does not return any pragmas in inherited methods"
+
+	^ Pragma allNamed: #stdioreplcommand in: self class! !
+
+!ObjectManager methodsFor: 'private' stamp: 'JZCH 13/Mar/2026 10:45:52'!
+selectors
+	^ self pragmas collect: [:aPragma | aPragma selector].! !
+
+!MinClassManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 09:50:14'!
+declare: aClassName
+	<stdioreplcommand>
+	^ self set: aClassName value: MinClass new! !
+
+!MinClassManager methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 09:53:04'!
+help
+"Show help text"
+	<stdioreplcommand>
+	^ 
+''! !
+
+!MinClassManager methodsFor: 'private' stamp: 'JZCH 13/Mar/2026 10:47:36'!
+pragmas
+	|pragmas|
+	pragmas := super pragmas.
+	pragmas := pragmas asOrderedCollection 
+		addAll: (Pragma allNamed: #stdioreplcommand in: self class superclass).
+	^ pragmas! !
 
 !REPLSession methodsFor: 'binding' stamp: 'JZCH 8/Mar/2026 20:57:12'!
 assignTo: aName value: aValue
@@ -528,15 +572,17 @@ initialize
 	outputs := OrderedCollection new.
 	sharedVariables := Dictionary new.! !
 
-!StdIOReadEvalPrint methodsFor: 'initialization' stamp: 'JZCH 9/Mar/2026 20:07:19'!
+!StdIOReadEvalPrint methodsFor: 'initialization' stamp: 'JZCH 13/Mar/2026 10:55:15'!
 initialize
 	super initialize.
 	
 	outputReadyPrivateNoREPL := false.
-       runningPrivateNoREPL := false.
+	runningPrivateNoREPL := false.
 	quitSmalltalkOnExit := false.
 
 	sessionPrivateNoREPL := REPLSession new repl: self.
+	objectManagerPrivateNoREPL := ObjectManager new repl: self.
+	classManagerPrivateNoREPL := MinClassManager new repl: self.
 	! !
 
 !StdIOReadEvalPrint methodsFor: 'private' stamp: 'JZCH 9/Mar/2026 20:36:16'!
@@ -579,6 +625,11 @@ printWrappedToWidth: aCollectionOfStrings
 runInput: aString
 "Do not call this manually!!"
 	^ Compiler evaluate: aString for: self logged: false! !
+
+!StdIOReadEvalPrint methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:56:05'!
+cls
+	<stdioreplcommand>
+	^ classManagerPrivateNoREPL ! !
 
 !StdIOReadEvalPrint methodsFor: 'user interface' stamp: 'JZCH 9/Mar/2026 20:41:33'!
 commands
@@ -646,6 +697,11 @@ intro
 	'Enter "self help!!" for help, "self commands!!" for a list of commands
 	Enter "self intro!!" to show this message'  ,
 	Character newLineCharacter asString! !
+
+!StdIOReadEvalPrint methodsFor: 'user interface' stamp: 'JZCH 13/Mar/2026 10:55:54'!
+obj
+	<stdioreplcommand>
+	^ objectManagerPrivateNoREPL ! !
 
 !StdIOReadEvalPrint methodsFor: 'user interface' stamp: 'JZCH 9/Mar/2026 20:41:44'!
 privateVariables
